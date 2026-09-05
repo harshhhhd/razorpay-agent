@@ -1,13 +1,9 @@
-# Merchant Growth Copilot
 
 An AI agent that analyzes a merchant's order data, finds upsell and
 clearance opportunities, and proposes campaigns — but every rupee of
 spend is gated by hard-coded rules and a human approval click, with
 a full audit trail.
 
-This is a **working base project**, tested end-to-end:
-analysis → recommendation → approve/reject → budget enforcement →
-simulated Razorpay outage → retry/backoff → stale-cache fallback → audit log.
 
 ---
 
@@ -16,15 +12,15 @@ simulated Razorpay outage → retry/backoff → stale-cache fallback → audit l
 ```
 merchant-growth-copilot/
 ├── backend/
-│   ├── main.py             FastAPI app (all endpoints)
+│   ├── main.py             
 │   ├── agent.py            Pattern mining + recommendation generation
 │   ├── rules_engine.py     Hard-coded budget caps & discount ceiling (NOT LLM)
-│   ├── razorpay_client.py  Mock Razorpay client: retry/backoff, failure simulation
+│   ├── razorpay_client.py  
 │   ├── audit.py            Append-only audit log writer/reader
 │   ├── database.py         SQLite schema + seeded demo data (products, orders)
 │   └── requirements.txt
 └── frontend/
-    └── index.html          Single-file dashboard (approve/reject, audit view)
+    └── index.html         
 ```
 
 No API keys are required to run this. Razorpay access is mocked against
@@ -76,11 +72,6 @@ You'll see `Serving HTTP on :: port 5500 ...` — that means it's working.
 Now open **`http://localhost:5500`** in your browser (not the terminal —
 the terminal just keeps the server running; the site opens in the browser).
 
-(You can also just double-click `index.html` to open it directly in a
-browser, but serving it avoids occasional CORS quirks in some browsers.)
-
-**Both terminals need to stay open** while you use the dashboard — one
-runs the API on port 8000, the other serves the page on port 5500.
 
 ---
 
@@ -141,41 +132,5 @@ Example:
 DAILY_BUDGET_INR=10000 MAX_DISCOUNT_PCT=20 uvicorn main:app --reload --port 8000
 ```
 
----
 
-## 6. Resetting the demo
 
-The SQLite file `backend/copilot.db` holds everything (orders, campaigns,
-audit log, budget tracker). To start over with a clean slate:
-```bash
-rm backend/copilot.db
-python3 backend/database.py
-```
-
----
-
-## 7. Swapping in real Razorpay
-
-Everything routes through `razorpay_client.py`. To go live:
-1. `pip install razorpay`
-2. In `_fetch_orders_mock()`, replace the SQLite query with a real call,
-   e.g. `client.order.all({...})` / `client.order.payments(order_id)`.
-3. In `create_offer()`, replace the mock return with a real
-   `client.payment_link.create({...})` call (or Razorpay's coupon/offer
-   mechanism, depending on which product you're integrating against).
-4. Keep the retry/backoff and stale-cache wrapper (`fetch_orders_with_retry`)
-   exactly as-is — that logic is API-agnostic.
-
----
-
-## 8. Known simplifications (call these out honestly in your submission)
-
-- Discount % per campaign type is currently a fixed value in `main.py`
-  rather than a structured field on the campaign row — fine for a demo,
-  but the natural next step for a real build.
-- The audience-size and revenue-lift math in `agent.py` are transparent
-  heuristics (documented inline), not a trained forecasting model — this
-  is intentional: simple, explainable estimates beat an opaque one for
-  a first version merchants have to trust.
-- `budget_tracker` resets by calendar date; a production version would
-  want timezone-aware rollover logic per merchant.
